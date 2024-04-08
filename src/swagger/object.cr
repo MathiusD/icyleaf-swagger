@@ -1,3 +1,6 @@
+require "json"
+require "yaml"
+
 module Swagger
   # Object is define a schema struct
   #
@@ -27,7 +30,23 @@ module Swagger
         instance_name = custom_name ? custom_name.as(String) : compliant_type_name(instance.class)
         properties = [] of Property
         {% for ivar in T.instance.instance_vars %}
-          {{ iname = ivar.name.stringify }}
+          {% json_annotation = ivar.annotation(::JSON::Field) %}
+          {% yaml_annotation = ivar.annotation(::YAML::Field) %}
+          {% if !json_annotation.nil? %}
+            {% if json_annotation[:ignore] %}
+              {% continue %}
+            {% else %}
+              {{ iname = json_annotation[:key].id.stringify }}
+            {% end %}
+          {% elsif !yaml_annotation.nil? %}
+            {% if yaml_annotation[:ignore] %}
+              {% continue %}
+            {% else %}
+              {{ iname = yaml_annotation[:key].id.stringify }}
+            {% end %}
+          {% else %}
+            {{ iname = ivar.name.stringify }}
+          {% end %}
           {{ irequired = !ivar.type.union? }}
           value = {% if T.class? || T.struct? %} instance.{{ ivar.name }} {% else %} {{ ivar.default_value.stringify }} {% end %}
           {% if ivar.type.union? %}
