@@ -27,7 +27,36 @@ end
 struct Project
   property id, name, description, vcs, open_source, author
 
-  def initialize(@id : Int32, @name : String, @vcs : VCS, @open_source : Bool, @author : Example::Author, @description : String? = nil)
+  def initialize(
+    @id : Int32, @name : String, @vcs : VCS, @open_source : Bool,
+    @author : Example::Author, @description : String? = nil
+  )
+  end
+end
+
+
+struct Example::YamlObject
+  @[YAML::Field(key: "_name")]
+  property name : String
+
+  def initialize(@name)
+  end
+end
+
+struct Example::JsonObject
+  @[JSON::Field(key: "Name")]
+  property name : String
+
+  def initialize(@name)
+  end
+end
+
+struct Example::JsonAndYamlObject
+  @[JSON::Field(key: "Name")]
+  @[YAML::Field(key: "_name")]
+  property name : String
+
+  def initialize(@name)
   end
 end
 
@@ -142,6 +171,48 @@ describe Swagger::Object do
           refs: {"SomeStringAlias" => "string"},
         )
       end
+    end
+
+    it "should generate schema of object with name of json annotation" do
+      raw = Swagger::Object.create_from_instance(
+        Example::JsonObject.new(
+          "Example"
+        )
+      )
+      raw.name.should eq "exampleJsonObject"
+      raw.type.should eq "object"
+      raw.items.should be nil
+      raw.properties.should eq [
+        Swagger::Property.new("Name", "string", required: true, example: "Example"),
+      ]
+    end
+
+    it "should generate schema of object with name of yaml annotation" do
+      raw = Swagger::Object.create_from_instance(
+        Example::YamlObject.new(
+          "Example"
+        )
+      )
+      raw.name.should eq "exampleYamlObject"
+      raw.type.should eq "object"
+      raw.items.should be nil
+      raw.properties.should eq [
+        Swagger::Property.new("_name", "string", required: true, example: "Example"),
+      ]
+    end
+
+    it "should generate schema of object with name of json annotation if present even if yaml annotation are present also" do
+      raw = Swagger::Object.create_from_instance(
+        Example::JsonAndYamlObject.new(
+          "Example"
+        )
+      )
+      raw.name.should eq "exampleJsonAndYamlObject"
+      raw.type.should eq "object"
+      raw.items.should be nil
+      raw.properties.should eq [
+        Swagger::Property.new("Name", "string", required: true, example: "Example"),
+      ]
     end
   end
 end
