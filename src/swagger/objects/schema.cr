@@ -13,6 +13,10 @@ module Swagger::Objects
       new(ref: "#/components/schemas/#{name}")
     end
 
+    def self.default_type(type : String)
+      new(type: type)
+    end
+
     # See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#dataTypes
     getter type : String? = nil
     getter format : String? = nil

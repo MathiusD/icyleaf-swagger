@@ -111,7 +111,11 @@ module Swagger
       if object.type == "array"
         if items = object.items
           if items.is_a?(String)
-            schema_items = Objects::Schema.use_reference(items)
+            if [ "string", "integer", "number", "boolean" ].includes?(items)
+              schema_items = Objects::Schema.default_type(items)
+            else
+              schema_items = Objects::Schema.use_reference(items)
+            end
           else
             schema_items = build_schema(items)
           end
