@@ -25,11 +25,12 @@ struct Example::SelfRef
 end
 
 struct Project
-  property id, name, description, vcs, open_source, author
+  property id, name, description, vcs, open_source, author, contributors
 
   def initialize(
     @id : Int32, @name : String, @vcs : VCS, @open_source : Bool,
-    @author : Example::Author, @description : String? = nil
+    @author : Example::Author, @description : String? = nil,
+    @contributors : Array(String) = [] of String
   )
   end
 end
@@ -108,7 +109,9 @@ describe Swagger::Object do
         Project.new(1,
           "swagger", VCS::GIT, true,
           author,
-          "Swagger contains a OpenAPI / Swagger universal documentation generator and HTTP server handler."),
+          "Swagger contains a OpenAPI / Swagger universal documentation generator and HTTP server handler.",
+          ["j8r"]
+          ),
         refs: {
           "exampleAuthor" => Swagger::Object.create_from_instance(
             author
@@ -118,20 +121,30 @@ describe Swagger::Object do
       raw.name.should eq "project"
       raw.type.should eq "object"
       raw.items.should be nil
-      raw.properties.should eq [
-        Swagger::Property.new("id", "integer", "int32", example: 1, required: true),
-        Swagger::Property.new("name", example: "swagger", required: true),
-        Swagger::Property.new("vcs", "object", example: "GIT", required: true, enum_values: [
+      raw.properties.should be_a(Array(Swagger::Property))
+      raw.properties.not_nil!.size.should eq 7
+      raw.properties.not_nil![0].should eq Swagger::Property.new("id", "integer", "int32", example: 1, required: true)
+      raw.properties.not_nil![1].should eq Swagger::Property.new("name", example: "swagger", required: true)
+      raw.properties.not_nil![2].should eq Swagger::Property.new(
+        "vcs", "object", example: "GIT", required: true, enum_values: [
           "GIT", "SUBVERSION", "MERCURIAL", "FOSSIL",
-        ]),
-        Swagger::Property.new("open_source", "boolean", example: true, required: true),
-        Swagger::Property.new("author", "object", required: true, ref: "exampleAuthor"),
-        Swagger::Property.new(
-          "description",
-          example: "Swagger contains a OpenAPI / Swagger universal documentation generator and HTTP server handler.",
-          required: false
-        ),
-      ]
+        ]
+      )
+      raw.properties.not_nil![3].should eq Swagger::Property.new("open_source", "boolean", example: true, required: true)
+      raw.properties.not_nil![4].should eq Swagger::Property.new("author", "object", required: true, ref: "exampleAuthor")
+      raw.properties.not_nil![5].should eq Swagger::Property.new(
+        "description",
+        example: "Swagger contains a OpenAPI / Swagger universal documentation generator and HTTP server handler.",
+        required: false
+      )
+      raw.properties.not_nil![6].should be_a(Swagger::Property)
+      raw.properties.not_nil![6].name.should eq "contributors"
+      raw.properties.not_nil![6].required.should eq true
+      raw.properties.not_nil![6].items.should be_a(Swagger::Object)
+      raw.properties.not_nil![6].items.not_nil!.as(Swagger::Object).name.should eq "itemOfstring"
+      raw.properties.not_nil![6].items.not_nil!.as(Swagger::Object).type.should eq "string"
+      raw.properties.not_nil![6].items.not_nil!.as(Swagger::Object).properties.should be_nil
+      raw.properties.not_nil![6].items.not_nil!.as(Swagger::Object).items.should be_nil
     end
 
     it "should generate schema of object with self ref" do
